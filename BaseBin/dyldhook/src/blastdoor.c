@@ -6,7 +6,7 @@
 #include <sys/fcntl.h>
 
 extern const char *ORIG(_simple_getenv)(const char *envp[], const char *which);
-extern int is_blastdoor;
+int is_blastdoor = 0;
 
 const char *HOOK(_simple_getenv)(const char *envp[], const char *which) {
   if(is_blastdoor) {

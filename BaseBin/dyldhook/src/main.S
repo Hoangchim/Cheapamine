@@ -73,6 +73,13 @@ MAKE_TRAMPOLINE(close)
 MAKE_TRAMPOLINE(open)
 MAKE_TRAMPOLINE(fcntl)
 MAKE_TRAMPOLINE(mmap)
+.global _MACHOMERGER_ORIG__simple_getenv
+.global _MACHOMERGER_HOOKTRAMPOLINE__simple_getenv
+_MACHOMERGER_ORIG__simple_getenv:
+    nop
+_MACHOMERGER_HOOKTRAMPOLINE__simple_getenv:
+    b .
+
 MAKE_TRAMPOLINE(_simple_getenv)
 MAKE_TRAMPOLINE(_simple_dprintf)
 MAKE_TRAMPOLINE(mach_init)
