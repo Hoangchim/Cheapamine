@@ -212,7 +212,7 @@ int reboot3(uint64_t flags, ...);
         return @"iOS 15.0 - 16.5.1 (arm64e)";
     }
     else {
-        return @"iOS 15.0 - 15.8.6 / 16.0 - 16.6.1 (arm64)";
+        return @"iOS 15.0 - 18.7.1 (arm64)";
     }
 }
 
@@ -326,24 +326,21 @@ int reboot3(uint64_t flags, ...);
     }];
 }
 
-- (void)semiReboot
+- (void)rebootUserspace
 {
-    int mib[3] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL};
-    size_t size;
-    sysctl(mib, 3, NULL, &size, NULL, 0);
-    struct kinfo_proc *procs = malloc(size);
-    sysctl(mib, 3, procs, &size, NULL, 0);
+    [self runUnsandboxed:^{
+        int pid = -1;
+        int r = exec_cmd_suspended(&pid, JBROOT_PATH("/basebin/jbctl"), "reboot_userspace", NULL);
+        if (r == 0) {
+            // the original plan was to have the process continue outside of this block
+            // unfortunately sandbox blocks kill aswell, so it's a bit racy but works
 
-    int count = size / sizeof(struct kinfo_proc);
-    pid_t selfPid = getpid();
-    pid_t launchdPid = 1;
-
-    for (int i = 0; i < count; i++) {
-        pid_t pid = procs[i].kp_proc.p_pid;
-        if (pid <= 1 || pid == selfPid) continue; // skip kernel + self
-        kill(pid, SIGKILL);
-    }
-    free(procs);
+            // we assume we leave this unsandbox block before the userspace reboot starts
+            // to avoid leaking the label, this seems to work in practice
+            // and even if it doesn't work, leaking the label is no big deal
+            kill(pid, SIGCONT);
+        }
+    }];
 }
 
 - (void)refreshJailbreakApps
@@ -395,7 +392,7 @@ int reboot3(uint64_t flags, ...);
     NSString *newBasebinTarPath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"basebin.tar"];
     int result = jbclient_platform_stage_jailbreak_update(newBasebinTarPath.fileSystemRepresentation);
     if (result == 0) {
-        [self semiReboot];
+        [self rebootUserspace];
         return nil;
     }
     return [NSError errorWithDomain:@"Dopamine" code:result userInfo:nil];

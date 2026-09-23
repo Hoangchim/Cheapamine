@@ -285,7 +285,7 @@
                     [changeMobilePasswordSpecifier setProperty:[DOButtonCell class] forKey:@"cellClass"];
                     [changeMobilePasswordSpecifier setProperty:buttonHeight forKey:@"height"];
                     [changeMobilePasswordSpecifier setProperty:@"key" forKey:@"image"];
-                    [changeMobilePasswordSpecifier setProperty:@"changeMobilePasswordPressed" forKey:@"action"];
+                    [changeMobilePasswordSpecifier setProperty:@"changeMobilePasswordWithAuthenticationPressed" forKey:@"action"];
                     [specifiers addObject:changeMobilePasswordSpecifier];
                     
                     PSSpecifier *reinstallPackageManagersSpecifier = [PSSpecifier preferenceSpecifierNamed:@"" target:self set:defSetter get:defGetter detail:nil cell:PSStaticTextCell edit:nil];
@@ -464,7 +464,7 @@
         [[DOEnvironmentManager sharedManager] setTweakInjectionEnabled:((NSNumber *)value).boolValue];
         UIAlertController *userspaceRebootAlertController = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Alert_Tweak_Injection_Toggled_Title") message:DOLocalizedString(@"Alert_Tweak_Injection_Toggled_Body") preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction *rebootNowAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Alert_Tweak_Injection_Toggled_Reboot_Now") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            [[DOEnvironmentManager sharedManager] semiReboot];
+            [[DOEnvironmentManager sharedManager] rebootUserspace];
         }];
         UIAlertAction *rebootLaterAction = [UIAlertAction actionWithTitle:DOLocalizedString(@"Alert_Tweak_Injection_Toggled_Reboot_Later") style:UIAlertActionStyleCancel handler:nil];
         
@@ -643,7 +643,29 @@
     [self.navigationController pushViewController:[[DOPkgManagerPickerViewController alloc] init] animated:YES];
 }
 
-- (void)changeMobilePasswordPressed
+- (void)changeMobilePasswordWithAuthenticationPressed
+{
+	LAContext *context = [[LAContext alloc] init];
+	NSError *authError = nil;
+	NSString *reason = DOLocalizedString(@"Password_Auth_Required");
+	
+	if ([context canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&authError]) {
+		[context evaluatePolicy:LAPolicyDeviceOwnerAuthentication
+			localizedReason:reason
+			reply:^(BOOL success, NSError * _Nullable error) {
+			dispatch_async(dispatch_get_main_queue(), ^{
+				if (success) {
+					[self changeMobilePassword];
+				}
+			});
+		}];
+	}
+	else {
+		[self changeMobilePassword];
+	}
+}
+
+- (void)changeMobilePassword
 {
     UIAlertController *changeMobilePasswordAlert = [UIAlertController alertControllerWithTitle:DOLocalizedString(@"Button_Change_Mobile_Password") message:DOLocalizedString(@"Alert_Change_Mobile_Password_Body") preferredStyle:UIAlertControllerStyleAlert];
     
@@ -662,7 +684,7 @@
         NSString *repeatPassword = changeMobilePasswordAlert.textFields[1].text;
         if (![password isEqualToString:repeatPassword]) {
             dispatch_async(dispatch_get_main_queue(), ^{
-                [self changeMobilePasswordPressed];
+                [self changeMobilePassword];
             });
         }
         else {

@@ -62,16 +62,22 @@ NSString *dyldhook_dylib_for_platform(void)
 	size_t len = sizeof(cpusubtype);
 	if (sysctlbyname("hw.cpusubtype", &cpusubtype, &len, NULL, 0) == -1) { return nil; }
 	if ((cpusubtype & ~CPU_SUBTYPE_MASK) == CPU_SUBTYPE_ARM64E) {
-		if (@available(iOS 16.0, *)) {
-			return @"dyldhook_merge.arm64e.dylib"; 
+		if (@available(iOS 18.0, *)) {
+			return @"dyldhook_merge.arm64e.iOS18+.dylib"; 
+		}
+		else if (@available(iOS 16.0, *)) {
+			return @"dyldhook_merge.arm64e.iOS16-17.dylib"; 
 		}
 		else {
 			return @"dyldhook_merge.arm64e.iOS15.dylib"; 
 		}
 	}
 	else {
-		if (@available(iOS 16.0, *)) {
-			return @"dyldhook_merge.arm64.dylib"; 
+		if (@available(iOS 18.0, *)) {
+			return @"dyldhook_merge.arm64.iOS18+.dylib"; 
+		}
+		else if (@available(iOS 16.0, *)) {
+			return @"dyldhook_merge.arm64.iOS16-17.dylib"; 
 		}
 		else {
 			return @"dyldhook_merge.arm64.iOS15.dylib"; 
@@ -101,8 +107,6 @@ int basebin_generate(bool comingFromJBUpdate)
 	NSString *genPath        = JBROOT_PATH(@"/basebin/gen");
 	NSString *fakelibPath    = JBROOT_PATH(@"/basebin/.fakelib");
 	NSString *systemhookPath = JBROOT_PATH(@"/basebin/systemhook.dylib");
-	NSString *tmpCachePath   = JBROOT_PATH(@"/shared_cache");
-	NSString *cachePath      = [fakelibPath stringByAppendingPathComponent:@"shared_cache"];
 
 	[[NSFileManager defaultManager] createDirectoryAtPath:genPath withIntermediateDirectories:YES attributes:nil error:nil];
 
@@ -122,10 +126,6 @@ int basebin_generate(bool comingFromJBUpdate)
 		[[NSFileManager defaultManager] removeItemAtPath:fakelibPath error:nil];
 		[[NSFileManager defaultManager] createDirectoryAtPath:fakelibPath withIntermediateDirectories:YES attributes:nil error:nil];
 		carbonCopy(@"/usr/lib", fakelibPath);
-                if([[NSFileManager defaultManager] fileExistsAtPath:tmpCachePath]) {
-                    [[NSFileManager defaultManager] createDirectoryAtPath:cachePath withIntermediateDirectories:YES attributes:nil error:nil];
-                    carbonMove(tmpCachePath, cachePath);
-                }
 
 		// Delete the dyld inside .fakelib
 		[[NSFileManager defaultManager] removeItemAtPath:fakelibDyldPath error:nil];

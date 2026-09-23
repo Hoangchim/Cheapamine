@@ -8,7 +8,6 @@
 #import "DOBootstrapper.h"
 #import "DOEnvironmentManager.h"
 #import "DOUIManager.h"
-#import <libjailbreak/carboncopy.h>
 #import <libjailbreak/info.h>
 #import <libjailbreak/util.h>
 #import <libjailbreak/jbclient_xpc.h>
@@ -343,7 +342,7 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
 {
     uint64_t cfver = (((uint64_t)kCFCoreFoundationVersionNumber / 100) * 100);
     if (cfver >= 2000) {
-        return nil;
+        return @"1900";
     }
     return [NSString stringWithFormat:@"%llu", cfver];
 }
@@ -481,20 +480,7 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
         completion(error);
         return;
     }
-
-    NSString *fakelibPath    = JBROOT_PATH(@"/basebin/.fakelib");
-    NSString *cachePath = [fakelibPath stringByAppendingPathComponent:@"shared_cache"];
-    NSString *tmpCachePath = JBROOT_PATH(@"/shared_cache");
-    if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
-      if (![[NSFileManager defaultManager] fileExistsAtPath:tmpCachePath]) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:tmpCachePath withIntermediateDirectories:YES attributes:nil error:nil];
-      }
-      if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath] && [[NSFileManager defaultManager] fileExistsAtPath:tmpCachePath]) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:tmpCachePath withIntermediateDirectories:YES attributes:nil error:nil];
-        carbonMove(cachePath, tmpCachePath);
-      }
-    }
-
+    
     if ([[NSFileManager defaultManager] fileExistsAtPath:basebinPath]) {
         if (![[NSFileManager defaultManager] removeItemAtPath:basebinPath error:&error]) {
             completion([NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedExtracting userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed deleting existing basebin file with error: %@", error.localizedDescription]}]);
@@ -508,7 +494,7 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
     }
     [self patchBasebinDaemonPlists];
     [[NSFileManager defaultManager] removeItemAtPath:JBROOT_PATH(@"/basebin/basebin.tc") error:nil];
-
+    
     void (^bootstrapFinishedCompletion)(NSError *) = ^(NSError *error){
         if (error) {
             completion(error);
@@ -547,6 +533,10 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
         }
         
         JBFixMobilePermissions();
+
+        // Add setuid bit to jbctl
+        // Allows us in the end to reboot userspace after we're already mobile
+        chmod(JBROOT_PATH("/basebin/jbctl"), S_ISUID | 0755);
 
         completion(nil);
     };
@@ -657,6 +647,9 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
 
 - (NSError *)finalizeBootstrap
 {
+    printf("Finalize bootstrap...\n"); fflush(stdout);
+    sleep(3);
+
     // Initial setup on first jailbreak
     if ([[NSFileManager defaultManager] fileExistsAtPath:JBROOT_PATH(@"/prep_bootstrap.sh")]) {
         [[DOUIManager sharedInstance] sendLog:@"Finalizing Bootstrap" debug:NO];
@@ -668,6 +661,9 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
         NSError *error = [self installPackageManagers];
         if (error) return error;
     }
+
+    printf("Finalized bootstrap...\n"); fflush(stdout);
+    sleep(3);
     
     BOOL shouldInstallLibroot = [self shouldInstallPackage:@"libroot-dopamine"];
     BOOL shouldInstallLibkrw = [self shouldInstallPackage:@"libkrw0-dopamine"];
