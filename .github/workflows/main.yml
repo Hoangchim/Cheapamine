@@ -105,4 +105,6 @@ jobs:
         with:
           name: Dopamine
           path: |
-            ${{ github.workspace }}/Application/Dopamine.ipa
+            ${{ github.workspace }}/Application/*.ipa
+            ${{ github.workspace }}/Application/*.tipa
+          if-no-files-found: error
