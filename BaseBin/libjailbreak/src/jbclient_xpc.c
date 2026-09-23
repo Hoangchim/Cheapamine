@@ -120,11 +120,14 @@ char *jbclient_get_boot_uuid(void)
 	return (char *)&bootUUID[0];
 }
 
-int jbclient_trust_file(int fd, struct siginfo *siginfo)
+int jbclient_trust_file(int fd, struct siginfo *siginfo, bool attach)
 {
 	xpc_object_t xargs = xpc_dictionary_create_empty();
 	xpc_dictionary_set_uint64(xargs, "fd", (uint64_t)fd);
-	if (siginfo) xpc_dictionary_set_data(xargs, "siginfo", siginfo, sizeof(struct siginfo));
+	if (siginfo) {
+		xpc_dictionary_set_data(xargs, "siginfo", siginfo, sizeof(struct siginfo));
+		xpc_dictionary_set_bool(xargs, "attach", attach);
+	}
 	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_SYSTEMWIDE, JBS_SYSTEMWIDE_TRUST_FILE, xargs);
 	xpc_release(xargs);
 	if (xreply) {
@@ -140,12 +143,12 @@ int jbclient_trust_file_by_path(const char *path)
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) return -1;
 
-	int r = jbclient_trust_file(fd, NULL);
+	int r = jbclient_trust_file(fd, NULL, false);
 	close(fd);
 	return r;
 }
 
-int jbclient_process_checkin(char **rootPathOut, char **bootUUIDOut, char **sandboxExtensionsOut, bool *fullyDebuggedOut)
+int jbclient_process_checkin(char **rootPathOut, char **bootUUIDOut, char **sandboxExtensionsOut, bool *fullyDebuggedOut, bool *forceCSAdhocOut)
 {
 	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_SYSTEMWIDE, JBS_SYSTEMWIDE_PROCESS_CHECKIN, NULL);
 	if (xreply) {
@@ -157,6 +160,7 @@ int jbclient_process_checkin(char **rootPathOut, char **bootUUIDOut, char **sand
 		if (bootUUIDOut) *bootUUIDOut = bootUUID ? strdup(bootUUID) : NULL;
 		if (sandboxExtensionsOut) *sandboxExtensionsOut = sandboxExtensions ? strdup(sandboxExtensions) : NULL;
 		if (fullyDebuggedOut) *fullyDebuggedOut = xpc_dictionary_get_bool(xreply, "fully-debugged");
+		if (forceCSAdhocOut) *forceCSAdhocOut = xpc_dictionary_get_bool(xreply, "force-cs-adhoc");
 		xpc_release(xreply);
 		return result;
 	}
@@ -493,6 +497,43 @@ int jbclient_boomerang_done(void)
 		int64_t result = xpc_dictionary_get_int64(xreply, "result");
 		xpc_release(xreply);
 		return result;
+	}
+	return -1;
+}
+
+bool jbclient_dopamine_is_jailbroken(char **version)
+{
+	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_DOPAMINE, JBS_DOPAMINE_IS_JAILBROKEN, NULL);
+	if (xreply) {
+		int64_t result = xpc_dictionary_get_int64(xreply, "result");
+		const char *receivedVersion = xpc_dictionary_get_string(xreply, "version");
+		if (receivedVersion && version) {
+			*version = strdup(receivedVersion);
+		}
+		xpc_release(xreply);
+		return (bool)result;
+	}
+	return false;
+}
+
+int jbclient_dopamine_get_root(void)
+{
+	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_DOPAMINE, JBS_DOPAMINE_GET_ROOT, NULL);
+	if (xreply) {
+		int64_t result = xpc_dictionary_get_int64(xreply, "result");
+		xpc_release(xreply);
+		return (bool)result;
+	}
+	return -1;
+}
+
+int jbclient_dopamine_drop_root(void)
+{
+	xpc_object_t xreply = jbserver_xpc_send(JBS_DOMAIN_DOPAMINE, JBS_DOPAMINE_DROP_ROOT, NULL);
+	if (xreply) {
+		int64_t result = xpc_dictionary_get_int64(xreply, "result");
+		xpc_release(xreply);
+		return (bool)result;
 	}
 	return -1;
 }

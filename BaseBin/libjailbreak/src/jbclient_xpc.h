@@ -13,9 +13,9 @@ xpc_object_t jbserver_xpc_send(uint64_t domain, uint64_t action, xpc_object_t xa
 
 char *jbclient_get_jbroot(void);
 char *jbclient_get_boot_uuid(void);
-int jbclient_trust_file(int fd, struct siginfo *siginfo);
+int jbclient_trust_file(int fd, struct siginfo *siginfo, bool attach);
 int jbclient_trust_file_by_path(const char *path);
-int jbclient_process_checkin(char **rootPathOut, char **bootUUIDOut, char **sandboxExtensionsOut, bool *fullyDebuggedOut);
+int jbclient_process_checkin(char **rootPathOut, char **bootUUIDOut, char **sandboxExtensionsOut, bool *fullyDebuggedOut, bool *forceCSAdhocOut);
 int jbclient_fork_fix(uint64_t childPid);
 int jbclient_cs_revalidate(void);
 int jbclient_jbsettings_get(const char *key, xpc_object_t *valueOut);
@@ -41,5 +41,8 @@ int jbclient_root_trustcache_info(xpc_object_t *infoOut);
 int jbclient_root_trustcache_add_cdhash(uint8_t *cdhashData, size_t cdhashLen);
 int jbclient_root_trustcache_clear(void);
 int jbclient_boomerang_done(void);
+bool jbclient_dopamine_is_jailbroken(char **version);
+int jbclient_dopamine_get_root(void);
+int jbclient_dopamine_drop_root(void);
 
 #endif

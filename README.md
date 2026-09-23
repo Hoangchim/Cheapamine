@@ -12,11 +12,11 @@
 > [!WARNING]
 > Sometimes when you jailbreak, Sileo will not appear, to fix this, you have to open settings in Cheapamine and press Refresh Jailbreak Apps.
 >
-> This fork keeps the Cheapamine behavior while updating to the upstream 2.5b4 base to keep compatibility and stability on the lock screen path.
+> This fork keeps the Cheapamine behavior while updating to the upstream 3.0.9 base for the latest exploit and jailbreak fixes.
 
 ### If anyone knows how to fix this issue, please let me know.
 
-A rootless semi-untethered jailbreak for iOS 15.0 - 16.5.1 (arm64e) and iOS 15.0 - 16.6.1 (arm64).
+A rootless semi-untethered jailbreak for iOS 15.0 - 17.3.1 (arm64e), iOS 15.0 - 18.7.1, 26.0 - 26.0.1 (A12/A13), and iOS 15.0 - 18.7.1 (arm64). More details will follow here soon.
 
 Please note that all issues related to version support will be deleted without response.
 

@@ -6,6 +6,7 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreServices/LSApplicationProxy.h>
+#import <CoreServices/LSApplicationWorkspace.h>
 
 int reboot3(uint64_t flags, ...);
 #define RB2_USERREBOOT (0x2000000000000000llu)
@@ -19,7 +20,7 @@ Available commands:\n\
 	trustcache info\t\t\tPrint info about all jailbreak related trustcaches and the cdhashes contained in them\n\
 	trustcache clear\t\tClears all existing cdhashes from the jailbreaks trustcache\n\
 	trustcache add <cdhash>\t\tAdd an arbitrary cdhash to the jailbreaks trustcache\n\
-	update <tipa/basebin> <path>\tInitiates a jailbreak update either based on a TIPA or based on a basebin.tar file, TIPA installation depends on TrollStore, afterwards it triggers a userspace reboot\n");
+	update <tipa/basebin/tarball> <path>\tInitiates a jailbreak update either based on a TIPA, based on a basebin.tar file or based on a standalone tarball, TIPA installation depends on TrollStore, afterwards it triggers a userspace reboot\n");
 }
 
 int main(int argc, char* argv[])
@@ -48,6 +49,17 @@ int main(int argc, char* argv[])
 		// When jailbroken the Dopamine app cannot have uid 0 because it can't drop it anymore without loosing it
 		// So in some cases (e.g. for spawning dpkg) we need to use jbctl to get it
 		setuid(0);
+	}
+
+	if (argc > 2) {
+		if (!strcmp(argv[argc-2], "--waitfor")) {
+			// When the Dopamine app spawns jbctl it needs to clean up it's own ucred before jbctl does the requested action
+			// For this it will attach a pipe fd and write to it once the cleanup is done, so we need to wait until that write happens
+			int fd = atoi(argv[argc-1]);
+			int r = 0;
+			read(fd, &r, sizeof(r));
+			close(fd);
+		}
 	}
 
 	const char *rootPath = jbclient_get_jbroot();
@@ -132,6 +144,16 @@ int main(int argc, char* argv[])
 	else if (!strcmp(cmd, "reboot_userspace")) {
 		return reboot3(RB2_USERREBOOT);
 	}
+	else if (!strcmp(cmd, "respring")) {
+		const char *sbreloadPath = JBROOT_PATH("/usr/bin/sbreload");
+		if (execve(sbreloadPath, (char *[]){ (char *)sbreloadPath, NULL }, environ) != 0) {
+			killall("/usr/libexec/backboardd", SIGTERM);
+		}
+	}
+	else if (!strcmp(cmd, "rebuild_icon_cache")) {
+		BOOL suc = [[LSApplicationWorkspace defaultWorkspace] _LSPrivateRebuildApplicationDatabasesForSystemApps:YES internal:YES user:YES];
+		return suc ? 0 : -1;
+	}
 	else if (!strcmp(cmd, "update")) {
 		if (argc < 4) {
 			print_usage();
@@ -167,8 +189,19 @@ int main(int argc, char* argv[])
 			updateFile = strdup([dopamineAppProxy.bundleURL.path stringByAppendingPathComponent:@"basebin.tar"].fileSystemRepresentation);
 			// Fall through to basebin installation
 		}
+		else if (!strcmp(updateType, "tarball")) {
+			NSString *tmpPath = [@"/tmp" stringByAppendingPathComponent:[NSUUID UUID].UUIDString];
+			[[NSFileManager defaultManager] createDirectoryAtPath:tmpPath withIntermediateDirectories:NO attributes:nil error:nil];
+			int r = libarchive_unarchive(updateFile, tmpPath.fileSystemRepresentation);
+			if (r != 0) {
+				printf("Failed to extract tarball: %d\n", r);
+				return 7;
+			}
+			updateFile = strdup([tmpPath stringByAppendingPathComponent:@"basebin.tar"].fileSystemRepresentation);
+			// Fall through to basebin installation
+		}
 		else if (strcmp(updateType, "basebin") != 0) {
-			// If type is neither tipa nor basebin, bail out
+			// If type is not tipa, tarball or basebin, bail out
 			print_usage();
 			return 2;
 		}
