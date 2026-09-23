@@ -122,12 +122,13 @@ int carbonCopy(NSString *sourcePath, NSString *targetPath)
 int carbonMoveSingle(NSString *sourcePath, NSString *targetPath)
 {
 	BOOL isDirectory = NO;
-	BOOL exists = fileExistsOrSymlink(sourcePath, &isDirectory);
+	BOOL isSymlink = NO;
+	BOOL exists = fileExistsOrSymlink(sourcePath, &isDirectory, &isSymlink);
 	if (!exists) {
 		return 1;
 	}
 
-	if (fileExistsOrSymlink(targetPath, nil)) {
+	if (fileExistsOrSymlink(targetPath, nil, nil)) {
 		[[NSFileManager defaultManager] removeItemAtPath:targetPath error:nil];
 	}
 
@@ -148,7 +149,8 @@ int carbonMove(NSString *sourcePath, NSString *targetPath)
 {
 	int retval = 0;
 	BOOL isDirectory = NO;
-	BOOL exists = fileExistsOrSymlink(sourcePath, &isDirectory);
+	BOOL isSymlink = NO;
+	BOOL exists = fileExistsOrSymlink(sourcePath, &isDirectory, &isSymlink);
 	if (exists) {
 		if (isDirectory) {
 			retval = carbonMoveSingle(sourcePath, targetPath);
