@@ -21,7 +21,11 @@ static void image_loaded(const struct mach_header *mh, intptr_t vmaddr_slide)
 
 void init_hookd_external_support(void)
 {
-	/* Publish the explicit API before external runtimes run their constructors. */
-	init_memory_hooks();
+	/*
+	 * Cheapamine keeps the modern hookd path for jailbreak stability, but the
+	 * external memory-hook export introduced in newer Dopamine builds is not
+	 * compatible with low-cost aftermarket touch stacks. Leave it disabled by
+	 * default and only enable it explicitly when debugging a specific runtime.
+	 */
 	_dyld_register_func_for_add_image(image_loaded);
 }
