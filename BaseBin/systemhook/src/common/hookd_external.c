@@ -22,11 +22,10 @@ static void image_loaded(const struct mach_header *mh, intptr_t vmaddr_slide)
 void init_hookd_external_support(void)
 {
 	/*
-	 * Cheapamine intentionally keeps the 3.0.10 upstream fixes, but the new
-	 * external memory-hook API is not safe for low-cost aftermarket touch stacks.
-	 * Keep the runtime override in place for compatibility with Ellekit/Frida
-	 * while avoiding the generic "ready" export that triggers the touch freeze
-	 * during the environment update flow.
+	 * Cheapamine keeps the 3.0.10/3.0.9 hookd path for jailbreak stability, but
+	 * the external memory-hook export introduced in the newer Dopamine flow is
+	 * not compatible with low-cost aftermarket touch stacks. Leave it disabled by
+	 * default and only enable it explicitly when debugging a specific runtime.
 	 */
 	_dyld_register_func_for_add_image(image_loaded);
 }
