@@ -398,7 +398,15 @@ __attribute__((constructor)) static void initializer(void)
 		if (process_requires_hookd()) {
 			litehook_hook_memory = litehook_hook_memory_hookd;
 			litehook_hook_function(mach_vm_protect, mach_vm_protect_fixed);
-			init_hookd_external_support();
+			if (getenv("DOPAMINE_ENABLE_EXTERNAL_HOOKD_SUPPORT") == NULL) {
+				/*
+				 * Cheapamine keeps the rest of the 3.0.10 hookd path but disables the
+				 * broader external runtime exposure that can freeze touch input on
+				 * low-end aftermarket displays after the jailbreak environment update.
+				 */
+			} else {
+				init_hookd_external_support();
+			}
 		}
 	}
 
