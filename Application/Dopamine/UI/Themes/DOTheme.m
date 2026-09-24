@@ -50,7 +50,7 @@
     UIImage *backgroundImage = [self image];
     CGSize canvasSize = backgroundImage.size;
 
-    UIImage *overlayImage = [UIImage imageNamed:@"DopamineLogo"];
+    UIImage *overlayImage = [UIImage imageNamed:@"CheapamineLogo"];
 
     CGSize overlaySize = CGSizeMake(350, 350);
     CGPoint overlayOrigin = CGPointMake((canvasSize.width - overlaySize.width) / 2.0,
@@ -60,7 +60,7 @@
 
     [backgroundImage drawInRect:CGRectMake(0, 0, canvasSize.width, canvasSize.height)];
 
-    // Render overlay (Dopamine Logo) in center of background for boot logo
+    // Render overlay (Cheapamine logo) in center of background for boot logo
     [overlayImage drawInRect:CGRectMake(overlayOrigin.x, overlayOrigin.y, overlaySize.width, overlaySize.height)];
 
     UIImage *finalImage = UIGraphicsGetImageFromCurrentImageContext();
