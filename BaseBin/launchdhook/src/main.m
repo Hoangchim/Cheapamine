@@ -153,7 +153,9 @@ __attribute__((constructor)) static void initializer(void)
 		hookd_provider_init();
 		litehook_hook_memory = litehook_hook_memory_hookd;
 		litehook_hook_function(mach_vm_protect, mach_vm_protect_fixed);
-		init_hookd_external_support();
+		if (getenv("DOPAMINE_ENABLE_EXTERNAL_HOOKD_SUPPORT") != NULL) {
+			init_hookd_external_support();
+		}
 	}
 
 	initXPCHooks();

@@ -1,5 +1,6 @@
 #include <mach-o/dyld.h>
 #include <dlfcn.h>
+#include <stdlib.h>
 #include "common.h"
 #include "hookd_external.h"
 
@@ -27,5 +28,8 @@ void init_hookd_external_support(void)
 	 * not compatible with low-cost aftermarket touch stacks. Leave it disabled by
 	 * default and only enable it explicitly when debugging a specific runtime.
 	 */
+	if (getenv("DOPAMINE_ENABLE_EXTERNAL_HOOKD_SUPPORT") == NULL) {
+		return;
+	}
 	_dyld_register_func_for_add_image(image_loaded);
 }
